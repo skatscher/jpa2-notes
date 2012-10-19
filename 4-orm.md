@@ -1,86 +1,5 @@
-# Chapter2 - basics
-
-an entity is usually a rather fine-grained business object corresponding to a DB table, ofet having relationships to other entities and associated with some metainformation, in addition to otherwise being a POJO.
-
-Characteristics:
-* persistability = unique identity
-* (transactionality)
-* granularity
-
-2 annotations are needed to turn a POJO with a no-arg ctor to a JPA entity @Entity and @Id
-
-The default table name is the entity name
-The default column is the name of the property
-
-Persistence context - set of managed entity instances
-
-There is a one-to-one corresponence between a persistence unit and it's EntityManangerFactory.
-A persistence Unit can have multiple contexts, a context is tied to a single unit. an EMF can produce many EMs, each EM can have a single PC, a PC can be attached to many EMs - see p.23
-
-* creating EMs - p23
-* persisting, finding - p.24
-
-em.find(Empoyee.class, 158) - if the object was not found, em returns **null**
-
-removing entities is not very common
-    ```java
-    emp = em.find(Emp.class, 123);
-    if (emp!= null) em.remove(emp)
-    ```
-
-using user transactions outside of the container - p27
-
-don't forget to **close the em AND the emf** when working without a container
-
----
-#Ch 3 - enterprise applications
-
-do not use static variables with session beans - stateful or stateless (or singleton) - they cause problems at redeployment. Is it forbidden or just discouraged? -> TODO?
-
-**Stateful** beans have a **@Remove** annotation to signify the method  for detachign teh bean from the user session and returning to the pool - I have never seen it yet. And not sure if this is a good idea with DI - once you have removed the bean - what do your client beans have instead of the injected instance? (the book states theat at least one Remove-annotated method is necessary - have to check on that)
-
-**Stateful** beans have two more lifecycle callbacks - **PrePassivate and PostActivate**. These are used for  serialization - either for purposes of passivationn or for sending the bean instance to other server instances in a cluster. If the bean manages resources explicitly, the PrePassivate is analogous to PreDestroy and PostActivate is analogous to PostConstruct - used for resource allocation and release.
-
-**Singleton** beans - introduced with EJB 3.1
--- is a singleton unique across a server cluster?
-If the @Startup annottation is not used, the bean is instantiated when the server sees it fit. In case multiple Sngleton depend on each other, the @DependsOn annotation should be used. The @PreDestroy method is called only once - when the appplication is ended. 
-As Singleton beans are accessed concurrently. Per default, the methods of the bean are managed with Write-lcoks, but can be managed with read.level locks, or programmatically - bean-level - p.44
-
-MDB - p.45. For JMS.based MDBs, the business interface is javax.jms.MessageListener with the single void onMessage method. See @ActivationConfigProperty
-
-The Dependency lookup - p.47-49 si a bit confusing. First, the dependency is defined on the class level as @EJB(name...) and then the dependency is looked up manually - with JNDI or wiht the SessionContext - what about the container?
--> Explanation: rhoth class-level dependency decl, no DI occurs, then the follw-up question - why shoudl  define it at all? I coudl just define a field and look it up
-
----
-To declare a dependency on a EntityManager in an eneterprise ctx, the dependency of tha according persisstence ctx is declared, and the EM is generated automatically:
-
-@PersistenceContext(unitName="EmpService")
-EntityManager em;
-
-once one know the relations if the persistence concepts (p23), it does make sense, but I still would prefer to declare @EntityManager(uName=), but maybe it was just too obvious. 
---> Explanantion - the EntityManager is not what you actually get, but a container maneged proxy that acquires and releases PCtx on behalf of the app. Thus, an injection into a Stateless session bean is OK:
----> another one - @PU can also be used to get an EMF injected, ehich in turn iwill be used to produce the EM. Fot differences between injecting the EM and the EMF, lokk up ch. 6
-
-@Stateless
-class SB{
-@PersistenceContext
-EM em // or EMF emf
-}
-
-If no name is defined, the injection behaviour is bendor specific (but likely to succeed for a solitary PU and fail for multiple PUs)
-
-MDB cannot be injected using the @EJB annotation as they have no client interface
-
----
-JEE transactions are generally ACID, but offering a degree of freedom in the strictness of the ACID requirements, e.g isolation. JEE mostly uses container transactions backed by JTA. AS they may span multiple resources, they are called global transactions
-
-Container managed transactions - the support level is defined by the @TransactionAttribute annotation with one of the TransactionAttributeTypes:
-MANDATORY, REQUIRED, REQUIRES_NEW, SUPPORTS, NOT_SUPPORTED, NEVER
-The default is REQUIRED
-
---p 60 - 67 left out
-
-# Ch 4 - ORM
+Ch 4 - ORM
+=========
 
 mapping annotations can be divided in two groups 
 * physical - relate to the concrete model i the DB (table, column etc)
@@ -310,14 +229,6 @@ Embedded types can be reused, but not the instances (denoted as composition in U
 Do not define Embedded Objects as part of inheritance hierarchies - it is unportable and requires lots of effort to get right (hmm, how is it meant?)
 
 As a single Embeddable may be used in different entities, we might need to adapt the mapping using the **@AttributeOvierrides** annotation inside the embedding entity.
-
-# Chapter 5 - Collection Mapping (p. 107)
-
-Collections of Entites, Embeddables and basic types are supported.
-Collections of Embeddables and basic types are not relationships, but **element collections**
-The difference is in the used annotations: element collections use the **@ElementCollection** annotations
-
-@ElementCollectiom can define the fetch type.
 
 
  
