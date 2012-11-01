@@ -217,19 +217,124 @@ If there are entites with pending changes, a fluch is guaranteed to occur when:
 * the TX commits 
 * em.flush() is called
 
+OTOH a flush may occur any time the provider sees fit - there is no guarantee that a flush will not occur. Most providers defer SQL generation to the last possible moment though.
+
+A flush consists of 3 components:
+
+* new entities -persist
+* changed entities - update
+* deleted entities - remove
+
+The process for the EM:
+
+* which new entites have been added to relationshis with cascade PERSIST - equivlent to calling persist() on each entity just before the flsuh
+* Check the integrity of relationships (and throw if detached or removed entities found)
+
+An elaborate example of a fluch with new and detached entites on p.158
+
+It is always safer to update the relations to the entities that will be removed before calling remove()
+
+## Detachment and Merge
+
+A detached entitiy is no longer connected to a PC. The opposite of detachmentis merging - hte EM then integrates the entity into a PC. On merge, any values in teh detached entity overwrite those on teh managed entity.
+
+How does an entity become detached?
+
+* When the PC is bound to a TX and the TX commits - all entities  in the PC will be detached
+* An app.managed PC is closed - all entities will be detached
+* A stateful bean holding an extended PC is removed - all entities will be detached
+* clear() is invoked - all entities of the current PC will be detached
+* detach() is called - a single entity will become detached
+* TX rollbac - all entities in all attached PCs are detached
+* entity is serialized - the serialized form is detached
+
+Call to detach() may activate according cascades. Is detach() is called on a new or removed entity, ONLY cascades are activated to detach related entities.
+
+//TODO : are one-to-many relationships LAZY be default?? (p.160)
+
+Beware of lazy loading - if lazy loading properties of an entity were no accessed (and thus loaded) while the entity was managed - the behaviour of lazy associations on detach is undefined. They may be there or not. If the entity has been detached during serialization, the lazy properties will not be loaded
+
+### Merging detached entities
+
+A call ot merge is special. Calling em.merge(entity) will NOT cause the entity instance to become managed. Rather a new, managed instance is returned. 
+
+If an entity instance with the same ID exists in the PC, it's state will be overridden.
+
+Calling merge on a new entity will cause a copy of this entity to be persisted and returned.
+
+It gets more complicates when relationships are involed: see complicated example on pp162-163
+
+Merge, like other oerations should be cascaded only from parent to child.
+Merging entities with relationships may get difficult. Ideally, the root af an object graph should be merged, so that all related entities will be merged automatically. This can be made work wiht cascading MERGE. Without is, each entity that is a target of a relationship in the graph must be merged individually
+
+## working with detached entities
+
+### preparing for detachment
+
+in order to prevent th risk of missing lazy relateionships, several thing can be done:
+
+* access the lazy loading proerties to assure that they are loaded - in case we need properties of the lazy properies, we need to access them too (the non-nested lazy property might be returned as an empty proxy, so we need to force the provider to load the real object by accessing it's properties)
+* 
+
+Note: the default fetch setting for Many-To-One relationship is EAGER, but it's LAZY for One-To_Many
+
+All collection-valued relationships are LAZY loaded per default 
 
 
+### avoiding detachment
 
+two approaches:
 
+* do not work with entities in the UI, which itself consists of two approaches: 
+    * use DTOs in the UI - doubtful usefulness, given the POJO nature of JPA entities
+    * use projection queries (subject in ch 7 & 8)
+* keep the TX open while the UI is rendering (and what about user input?) - it does not work if the entities are to be serialized, but for one-tier webapps, it might work
 
+#### Transaction view pattern
 
+the TX is started, then rendering occurs and then the TX is commited in the Controller (may work for JSP pages with exlicit rendering, but I doubt that for JSF pages)
 
+#### Entity manager per request
 
+in the entry method (Servlet's doGet in the example on p170), create an application-managed EM, make queries and close() it when the method ends, flushing the PC.
 
+We can advance this approach by extracting the EM  in to a Stateful bean adn using an EXTENDED PC. The lifecycle of the bean would be restricted by the calling method - we will also have to call a @Remove-annotated method on the bean itself.
 
+This approach does introduce som eoverhead , but is extensible and can be used in merge scenarios as well - as the Stateful bean would hold the PC for the duration of a find-edit-merge workflow.
 
+### merge strategies
+
+### Session facade pattern
+
+The changed entity is handed to a stateless bean for merging.
+In case where the changes encompass only a small portion of a larger entity, a dedicated method for these properties might be better - finding the managed instance of the entity and then updating it with the values instead of merging the complete entity.
+ 
+### Edit session pattern (p.175)
+
+Using the EXTENDEN PC, we can approach the issue differently. If the Stateful bean holding the PC is stored during the session, we will not have to merge. The bean will be of very narrow use - mainly for retrieving the right entity and persisting it implicitly
+
+ The bean is annotated with TransactionAtributeType.NOT_SUPPORTED - we don't need TX here, except for the saving:
+
+@Remove
+@TransactionAtribute(TransactionAtributeType.REQUIRES_NEW)
+public void save(){}
+
+once the editing session is complete, we need to remove the Stateful bean.
+
+Here the patter explained:
+
+1. For each use case that modifies data, a stateful bean with extended PC is created. 
+2. The request triggers the creation of the bean (and binds it to the session)
+3. On request completion the bean is obtained and data is written into the managed entites. Then an operation is called to persist the data (adn in teh example, to dispose the bean)
+
+This looks like an excessive use of stateful session beans, but this approach scales well for complex (multiple) edits.
+
+The stateful bean instances are ot threadsafe (might be a problem on rapid repeated resubmitting)
 
  
+
+
+
 
 
 
