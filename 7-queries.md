@@ -17,7 +17,7 @@ We dont have to list an entity to navigate to it:
     SELECT e.department FROM Employee e
 
 ### Projections
-We can retrieve a projection, usign only portions of found data:
+We can retrieve a projection, using only portions of found data:
     
     SELECT e.name, e.salary FROM Employee e
 
@@ -49,7 +49,7 @@ There are 2 types of parameter binding syntax - positional and named:
 
 ## Defining Queries
 
-**Query** & **TypedQuery**. TypeQuery extends Query. Queries are created using the 4 factory methods of the EM. Thsi chapter handles only the SPQL queries. SQL -> ch.11, criteria -> ch.9
+**Query** & **TypedQuery**. `TypeQuery` extends `Query`. Queries are created using the 4 factory methods of the EM. Thsi chapter handles only the SPQL queries. SQL -> ch.11, criteria -> ch.9
 
 2 Approaches to deifne an SPQL query: 
 
@@ -59,7 +59,7 @@ There are 2 types of parameter binding syntax - positional and named:
 Dynamic queries are simple strings, named queries are staic and more efficient as they are precompiled once.
 
 ### Dynamic Queries
-
+```java
     em.createQuery(queryString);
 
 Translated queries are often cached. To exploit the caching, use parametrized queries. If using simply concatenated queries, they will be have to be translated again each time.
@@ -71,17 +71,54 @@ Use parametrized queries to avoid such attacks. Here, the quotes used in the par
 In general, static named queries are preferrable for queries that are exacted often.
 
 ### Named Queries
-
+```java
     @NamedQuery(name="findSalaryForNameAndDepartment", query="SELECT e.salary FROM employee e WHERE e.department.name = :deptName AND e.name = :empName")
 
-Named queries are typically annotated on the entitiy class. Here, string concatenation for formatting is acceptable because of it's low and one-time cost. The name of the query msut be unique across the complete PU. So a common practice is to prefix the queries with the name of the entity: name=Employee.findSalaryByNamesAndDepartment
+Named queries are typically annotated on the entitiy class. Here, string concatenation for formatting is acceptable because of it's low and one-time cost. The name of the query msut be unique across the complete PU. So a common practice is to prefix the queries with the name of the entity: `name=Employee.findSalaryByName`
 
-For multiple queries, use the @NamedQueries annnotation:
+For multiple queries, use the `@NamedQueries` annnotation:
 
 ```java
     @NamedQueries({@NamedQuery(...), @NamedQuery(...)})
 
     em.createNamedQuery("Employee.findByName", Employee.class).setParameter("name", name);
+
+### Parameter types
+
+Parameters are set using the `setParameter(name/number, value)`. `Date` and `Calendar` types require a third method parameter that specifies the type (`java.sql.Date` or `.Datetime` or `.Timesamp`).
+
+Entity types amy be used as parameters as well. When translating to SQL, the PK columns of the entities are used.
+
+    setParameter("start", currentDate, TemporalType.DATE)
+
+The parameter may be used several times in the query, but needs to be set only once. 
+
+### Executing queries
+
+3 ways to execute a query:
+
+* getSingleResult
+* getResultList
+* executeUpdate - for buld updates, no result is returned
+
+If the query executed by `getResultList` dies not find results, the list is empty. The return type is specified as `List` to support sorting (using `ORDER BY`, queries are unordered by default).
+
+If the query executed by `getSingleResult` finds no result, it throws a `NoResultExcepion`.
+If multiple results are available, it wil throw a `NonUniqueResultException`.
+
+These exceptions, unlike other exceptions thrown by the EM will not cause the TX to rollback.
+
+Both `get*` queries may specifiy locking for the affected rows using the `setLockMode` method (more in ch. 11)
+
+`Query` and `TypedQuery` objects may be reused as long as the same PC is active. For TX-scoped EM, the lifetime of a `Query` is limited to the TX. Other EM types may use the Query isntances until the EM is closed or removed.
+
+
+
+ 
+
+
+ 
+
 
 
 
