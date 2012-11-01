@@ -60,7 +60,7 @@ Dynamic queries are simple strings, named queries are staic and more efficient a
 
 ### Dynamic Queries
 
-```java
+
     em.createQuery(queryString);
 
 Translated queries are often cached. To exploit the caching, use parametrized queries. If using simply concatenated queries, they will be have to be translated again each time.
@@ -72,6 +72,7 @@ Use parametrized queries to avoid such attacks. Here, the quotes used in the par
 In general, static named queries are preferrable for queries that are exacted often.
 
 ### Named Queries
+
 ```java
     @NamedQuery(name="findSalaryForNameAndDepartment", query="SELECT e.salary FROM employee e WHERE e.department.name = :deptName AND e.name = :empName")
 
