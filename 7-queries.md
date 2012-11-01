@@ -59,6 +59,7 @@ There are 2 types of parameter binding syntax - positional and named:
 Dynamic queries are simple strings, named queries are staic and more efficient as they are precompiled once.
 
 ### Dynamic Queries
+
 ```java
     em.createQuery(queryString);
 
