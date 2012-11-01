@@ -78,6 +78,7 @@ Named queries are typically annotated on the entitiy class. Here, string concate
 
 For multiple queries, use the @NamedQueries annnotation:
 
+'''java
     @NamedQueries({@NamedQuery(...), @NamedQuery(...)})
 
     em.createNamedQuery("Employee.findByName", Employee.class).setParameter("name", name);
