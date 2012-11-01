@@ -75,6 +75,7 @@ In general, static named queries are preferrable for queries that are exacted of
 
 ```java
     @NamedQuery(name="findSalaryForNameAndDepartment", query="SELECT e.salary FROM employee e WHERE e.department.name = :deptName AND e.name = :empName")
+```
 
 Named queries are typically annotated on the entitiy class. Here, string concatenation for formatting is acceptable because of it's low and one-time cost. The name of the query msut be unique across the complete PU. So a common practice is to prefix the queries with the name of the entity: `name=Employee.findSalaryByName`
 
@@ -84,6 +85,7 @@ For multiple queries, use the `@NamedQueries` annnotation:
     @NamedQueries({@NamedQuery(...), @NamedQuery(...)})
 
     em.createNamedQuery("Employee.findByName", Employee.class).setParameter("name", name);
+```
 
 ### Parameter types
 
