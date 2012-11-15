@@ -21,7 +21,10 @@ We can retrieve a projection, using only portions of found data:
     
     SELECT e.name, e.salary FROM Employee e
 
-Filtering results using the WHERE clause:
+//TODO : how do we work with projected results - how are they returned from a query?
+
+### Filtering results 
+using the WHERE clause:
 
     SELECT e FROM Employee e WHERE e.name = "John Smith"
 
@@ -103,7 +106,7 @@ The parameter may be used several times in the query, but needs to be set only o
 
 * getSingleResult
 * getResultList
-* executeUpdate - for buld updates, no result is returned
+* executeUpdate - for bulk updates, no result is returned
 
 If the query executed by `getResultList` dies not find results, the list is empty. The return type is specified as `List` to support sorting (using `ORDER BY`, queries are unordered by default).
 
@@ -115,6 +118,40 @@ These exceptions, unlike other exceptions thrown by the EM will not cause the TX
 Both `get*` queries may specifiy locking for the affected rows using the `setLockMode` method (more in ch. 11)
 
 `Query` and `TypedQuery` objects may be reused as long as the same PC is active. For TX-scoped EM, the lifetime of a `Query` is limited to the TX. Other EM types may use the Query isntances until the EM is closed or removed.
+
+## Working with query results
+
+The entities returned from a query are managed. The only exception is when using an EM outside any TX - then the entities are retuned in detached state.
+
+### Untyped results
+
+If the query is not parametrized by the return type, `getResultList` will return an untyped `List` and `getSingleResult` will return an `Object`.
+
+### Optimizing read-only queries
+
+Using TX-scoped EM outside of TX ffor read-only wueries may be more efficient. For managed antites, a copy is created to compare the initial state with the one on TX commit. In cases where the entities are detached immediately, the provider may be able to optimize this overhead away. This trick does not work for app-managed or extended EMs, as their PC is not discarded on TX commit. To disable transactions, use `TransactionAttribute.NOT_SUPPORTED`
+
+### Special result types
+
+When returning multiple results (projection and aggregate queries), the return type will be a `List` of `Object[]`. This can be used in **Constructor expressions** to create custom objects with the JPQL `NEW` operator. -> see tests
+
+### Pagination
+
+JPA supports pagination with the `setFirstResult` and `setMaxResults` methods of the `Query`. These values can be accessed via `getFirstResult` and `getMaxResults`.
+
+Do not use pagination for queries that use joins across collection relationships (1-* and *-*) as these queris may return duplicate values. The duplicates make it impossible ot use a position.
+-> example?
+
+### Queries and uncommited changes
+
+Queries are eecuted directly on the DB, so the provider cannot participate and use the PC. If the PC has not been flushed, the query may return stale data.
+
+This is not a concern when using the `find()` method - it always checks the PC first.
+
+The provider will attempt to mke query results consistent, regardless of the flush state - either flushing the PC before the Query or using the PC to modify the results. Ensuring the integrity is not easy and may not always be desired. 
+
+
+
 
 
 
