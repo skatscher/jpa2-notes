@@ -148,8 +148,93 @@ Queries are eecuted directly on the DB, so the provider cannot participate and u
 
 This is not a concern when using the `find()` method - it always checks the PC first.
 
-The provider will attempt to mke query results consistent, regardless of the flush state - either flushing the PC before the Query or using the PC to modify the results. Ensuring the integrity is not easy and may not always be desired. 
+The provider will attempt to mke query results consistent, regardless of the flush state - either flushing the PC before the Query or using the PC to modify the results. Ensuring the integrity is not easy - the provider cannot reliably determine which entities have changed. 
+So if queries that consider changed entites are common and the integrity strategy of the provider is to flush before the query, this might lead to a performance impact.
 
+To xontrol the integrity requirements of the queries, the flush mode can be set on t a`Query` or on the EM. The **flush mode** tells the provider how to handle pending changes and queries.
+
+`FlushModeType.AUTO/COMMIT`
+
+`AUTO` is the default - the provides has to ensure that pending changes get included in the query results. If the query might involve data from the PC, the provider will ensure the correcness of the results.
+
+`COMMIT` - nothing will be done to ensure the inclusion of the PC in the query results.
+
+The flsuh mode is set on the EM, but is rahter a property of the PC. For TX-scoped EMs this means that the flush mode has to be set on each TX - for the current PC.
+
+When conflicted, the `Query` setting overrides the EM setting.
+
+## Query timeouts
+
+A TX timeout willu cause the TX to be rolled back. For real query timeouts, after which the query will be aborted, but the TX will be fine, use the `javax.persistence,query.timeout` property. It can be set as a hint an a query or configured in the PU (see ch13.)
+
+`query.setHint("javax.persistence.query.timeout", 5000);`
+
+Using this hint is not pertable - it may not be supported by the DB or hte provider - it is not required to. It is further not guaranteed that the timeout will not lead to a TX rollback.
+
+## Bulk update and delete
+
+Bulk updates on entites are complex to implement for a provider and therefore, some restrictions apply.
+
+Bulk updates are executed ba calling `executeUpdate()` on the `Query`. They are directly translated to SQL and do not affect the PC.
+
+The PC is not updated on execution, so onyl entities retrieved after the update will have the correct data.
+
+Because of this, bulk updates need either to be the first operation in a or be executed in an own TX - in a method annotated with
+`@TransactionAttribute(@TransactionAttributeType.REQUIRES_NEW)` - a new TX is the preferred method.
+
+Usually, a bulk update causes the data related to the target entity to be invalidated (//TODO and detached?), but the range of invalidation may vary - a small bulk update ma invalidate only a selection of in-memory entities.
+
+DO not perform native SQL updates and deletions on tables mapped to entities. This can lead to stale in-memory cache data. The PC is not invalidated - only the provider cache.
+
+If bulk updates happen after the relevant operations in a TX, the PC will have the priority and overwrite the data changed by the bulk updates (see p.202 example) 
+
+Bulk updates and extended PCs don't play nice together - the provider will never refresh the PC to reflect the changes of the bulk update. Relevant locking and refreshing strategies - see ch.11
+
+#### DELETE and FK integrity
+
+Delete statements are applied to a set of entities and no cascading occurs. The persistence provider is further oblivious of FK relationships, so a delete violation an FK relationship will result in `PersistenceException`.
+
+To avoid it, update the entites with the FK first, then delete.
+
+If the FK integrity were not enforced, it would result in a `PeristenceException` the next time the entity containing the FK would be retrieved.
+
+### Query hints
+
+Hints are the extension point of JPA - features not available or specified may be activated over the hints. There are also some standard features that can be manipulated over the hints - like the query timeout. Providers are requires to ignore hints they don't understand.
+
+### best practices
+
+Use named queries where possible - htey are precompiled when possible. They laso enforce using parameters - this keeps the number of distinct strings parsed by the DB to a minimum. As most DB cache their queries, this will enhance performance. Parameters also improve security as they are escaped.
+
+Prefix named queries with the entity name or use some other sort of namespace scheme.
+
+#### report queries
+
+For queries that will not change the retrieved entities, using a TX.scoped EM outside a TX is advised. The provider then may be able to optimize the query omitting some measures.
+
+If you need only several properties of the entity, use projection queries - they are more efficient.
+
+#### query hints
+
+If you decide to use query hints, better place them in teh xml config, or at least into named queris.
+
+#### stateless session beans
+
+SSB seems to be the best way to organize queries.
+
+* Clients will be able to execute queries using business methods.
+* Can optimize theis TX usage
+* using TX-scoped PCs keeps them lean
+
+#### bulk update&delete
+
+Should be executed in isolated TX, as they may negatively impact the current PC.
+
+
+
+
+
+ 
 
 
 
