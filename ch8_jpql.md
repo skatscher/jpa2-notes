@@ -137,6 +137,90 @@ This "extra" work w´may result in a performance issue for large result sets. Du
 ### Input params (already tried in ch.7)
 ### Basic expression form
 
+Operator precedence:
+
+Navigation/dot `.` > Unary `+` and `-` > `*` and `/` > `+` and `-` (add&subtract) > 
+Comparison (<, >, = etc, BETWEEN, LIKE, IN, IS NULL, IS EMPTY, MEMBER, includeing the variants with `NOT`) > `AND`, `OR`, `NOT`
+
+#### BETWEEN
+
+`SELECT e FROM Employee e WHERE e.salary BETWEEN 40000 AND 50000` is identical to
+ 
+`SELECT e FROM Employee e WHERE e.salary >= 40000 AND e,salary <= 50000`
+
+#### LIKE
+
+The legal wildcards are `_` for a single char and `%` for any number of chars. In cases when the undescore and the percent sign should be trated literally, the `ESCAPE` keyword can be used to signify the escape character:
+
+E.g.: the `\` is the escape character.
+
+`WHERE d.name LIKE 'QA\_% ESCAPE '\'`
+
+#### Subqueries
+
+Subqueries are complete queries (in parens) that is ambedded in a conditional expression.
+
+`SELECT e FROM Employee e WHERE e.salary = (SELECT MAX(emp.salary) FROM Employee emp)`
+
+The scope of an id var extends to all subqueries. By defining an id var, a subquery can override the id var of the same name from the main query. However this is not required to be implemented by the provider, so it' better not to rely on such overrriding.
+
+Get all employees whi have a cell phone:
+` SELECT e FROM Employee e WHERE EXISTS (SELECT 1 FROM Phone p.employee = p AND p.type = 'cell')`
+
+This query also illustrates an interesting technique. When we are only interested in existance of sth, and are using EXISTS, returning a literal `1` is common to signify that the actual results of the subquery are not relevant.
+
+This query could have been written using joins and the `DISTINCT` operator. Often, when a join is used for iltering, there is an equivalent subquery condition.
+
+` SELECT e FROM Employee e WHERE EXISTS (SELECT 1 FROM e.phones p WHERE p.type = 'cell')`
+ 
+#### IN expressions
+
+Used to check if a single valued path expression is member of a collection. The collection is either literal or the result of a subquery. -> p.226
+
+#### Collection expressions
+
+##### IS EMPTY
+
+`IS EMPTY` is the counterpart of `IS NULL` for collections.
+
+`SELECT e FROM Employee e WHERE NOT EMPTY e.directs` equivalent:
+`SELECT m FROM Employee m WHERE (SELECT COUNT(e) FROM Employee e WHERE e.manager = m) > 0`
+
+##### MEMBER OF
+
+`SELECT e FROM Employee e WHERE :project MEMBER OF e.projects` equivalent:
+`SELECT e FROM Employee e WHERE :project IN (SELECT p FROM e.projects p)`
+
+##### EXISTS
+
+##### ANY, ALL, SOME
+
+
+### Scalar expressions
+
+#### Literals
+
+Single quotes are used to demarcate string literals. Boolean literals are `TRUE` and `FALSE`. Nubers can be expressed similar like in the java syntax.
+
+Queries also can reference `Enum` types. `... WHERE e.type = com.example.EmployeeType.FULLTIME`
+
+Temporal literals use the JDBC escape syntax. `d` is for date, `t` is for time, `ts` - for timestamp:
+
+`{d '2009-11-05}`
+`{t '12-45-52'}`
+`{ts '2009-11-05 12-45-52.325'}` . The millisecond part is optional.
+
+#### Function expressions - p.230
+
+#### CASE expressions
+
+Conditional logic for queries. There are 4 forms of the CASE expressions.
+
+The most general (all other forms can be expressed as a general case expression)
+`CASE {WHEN <condition> THEN <scalar> }+ ELSE <scalar> END`
+
+Case expressions ar eoften used to transform data in report queries- p.232
+
 
 
 
