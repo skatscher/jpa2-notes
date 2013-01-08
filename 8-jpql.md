@@ -13,9 +13,9 @@ Queries fall into 4 categories
 
 Aggregate and select queries are sometimes called report queries. THe set of entities and embeddables the queries operate on are called "abstact persistence schema". 
 
-Entities may be named using the `name` attribute of the `@Entity` annotation. The unqualified class name is the default entity name. Smple properties of entities are called "state fields", properties that are relations are called "association fields".
+Entities may be named using the `name` attribute of the `@Entity` annotation. The unqualified class name is the default entity name. Simple properties of entities are called "state fields", properties that are relations are called "association fields".
 
-Queries are not case-sensitive except for entity and propery names - they must be written exactly as in teh onject.
+Queries are not case-sensitive except for entity and propery names - they must be written exactly as in the object.
 
 ## Select queries
 
@@ -39,13 +39,13 @@ Navigation to a collection of entities is called  **collection-valued associatio
 
 The navigation is performed using the dot(**.**) operator. The navigation stops at state field paths and collection-valued association paths. 
 
-The keyword `OBJECT` has no implct on the query but may be used as a visual clue to sgnify that an entity is expected. Unfortunately, `OBJECT` is restricted to id vars (though e.department would return an entity, you cannot use `OBJECT` - only `e`) and thus not very useful.
+The keyword `OBJECT` has no impact on the query but may be used as a visual clue to signify that an entity is expected. Unfortunately, `OBJECT` is restricted to id vars (though e.department would return an entity, you cannot use `OBJECT(e.department)` - only `e`) and thus not very useful. It exists mainy for compatibilty reasons, as it was assumed that SQL would support it.
 
 The `DISTINCT` operator is used to exclude duplicates:
 `SELECT DISTINCT e.department FROM Employee e`
 
 The result type of a select query may not include collection-valued paths:
-`SELECT d.employees FROM Department d` is illegal. This restriction prevent the provider from combining successive DB rows to a single result (and why would that be bad?) -> SO
+`SELECT d.employees FROM Department d` is illegal **see BasicJpqlTest - it sems to be possible after all**. This restriction prevent the provider from combining successive DB rows to a single result (and why would that be bad?) -> SO
 
 When a select query returns an embeddable , like in `SELECT e.address FROM Employee e`, it's important to note that the embeddable **will not be managed**. In order to obtain managed embeddables, retrieve the managed embedding entities and navigate from there.
 
@@ -53,26 +53,26 @@ When a select query returns an embeddable , like in `SELECT e.address FROM Emplo
 ### Ctor expressions
 ### Ingeritance and polymorphism 
 
-Restrivting queries to a particular class of a hierarchy:
+Restricting queries to a particular class of a hierarchy:
 
 `SELECT p FROM Project p WHERE TYPE(p)=DesignProject` -- there are no quotes around the type name, but string params can be used as params.
 
 ## FROM clause
 
-Consists from id vars and join clause declarations. Every query must have at least one id var in the fROM clause, corresponding to an Entity. When the id var is not a path but a single entity - e.g. `e` - it is called a **range variable declaration** (confusing, but it comes from the set theory). An optional `AS` keyword max be used. The id must follow standard java naming rules (case insensititve)
+Consists of id vars and join clause declarations. Every query must have at least one id var in the FROM clause, corresponding to an entity. When the id var is not a path but a single entity - e.g. `e` - it is called a **range variable declaration** (confusing, but it comes from the set theory). An optional `AS` keyword may be used. The id must follow standard java naming rules (case insensititve)
 
 ### Joins
 
 Joins are queries combining results from ultiple entities. They occur whenever:
 
 * more than one range var decls are listed in the `FROM` and appear in the `SELECT`
-* `JOIN` operator is used to extend the entitiy through a pth expression (whaa?)
+* `JOIN` operator is used to extend the entitiy through a path expression (how?)
 * a path expr. navigates along an association field to the same or different entity. 
 *  `WHERE` conditions compare attributes of different id vars.
 
 Joins may be specified explicitly using the `JOIN` keyword, or implicitly as result of path navigation.
 
-**Inner joins** return entites satisfying all join conditions. Path navigation from on eentity to another is aform of inner join. An **outer join** is a set of all entities satisfying a ll join condtions plus all instances of one of the entities (called the **left** type). Absence of join conditions will produca a cartesian product (all possible combinations of the entities -> M*N results). Cartesian products are rarely used in JPQL. 
+**Inner joins** return entites satisfying all join conditions. Path navigation from one entity to another is a form of inner join. An **outer join** is a set of all entities satisfying all join condtions plus all instances of one of the entities (called the **left** type). Absence of join conditions will produce a cartesian product (all possible combinations of the entities -> M*N results). Cartesian products are rarely used in JPQL. 
 
  More on the `JOIN` operator wiht examples: 217-222:
 #### Inner joins
@@ -140,13 +140,13 @@ This "extra" work w´may result in a performance issue for large result sets. Du
 Operator precedence:
 
 Navigation/dot `.` > Unary `+` and `-` > `*` and `/` > `+` and `-` (add&subtract) > 
-Comparison (<, >, = etc, BETWEEN, LIKE, IN, IS NULL, IS EMPTY, MEMBER, includeing the variants with `NOT`) > `AND`, `OR`, `NOT`
+Comparison (<, >, = etc, BETWEEN, LIKE, IN, IS NULL, IS EMPTY, MEMBER, including the variants with `NOT`) > `AND`, `OR`, `NOT`
 
 #### BETWEEN
 
 `SELECT e FROM Employee e WHERE e.salary BETWEEN 40000 AND 50000` is identical to
  
-`SELECT e FROM Employee e WHERE e.salary >= 40000 AND e,salary <= 50000`
+`SELECT e FROM Employee e WHERE e.salary >= 40000 AND e.salary <= 50000`
 
 #### LIKE
 
@@ -158,7 +158,7 @@ E.g.: the `\` is the escape character.
 
 #### Subqueries
 
-Subqueries are complete queries (in parens) that is ambedded in a conditional expression.
+Subqueries are complete queries (in parens) that are embedded in a conditional expression.
 
 `SELECT e FROM Employee e WHERE e.salary = (SELECT MAX(emp.salary) FROM Employee emp)`
 
@@ -195,12 +195,18 @@ Used to check if a single valued path expression is member of a collection. The 
 
 ##### ANY, ALL, SOME
 
+Compares WHERE clause to results of a subquery. ANY and SOME are aliases - identical.
+
+// finding a manager who has subordinates commanding a larger salary then himself
+`SELECT e FROM Employee e WHERE e.directs IS NOT EMPTY AND e.salary < ANY (SELECT d.salary FROM e.directs d)`
 
 ### Scalar expressions
 
+Basically anything that results on a single scalar value. Subqueries resulting in single scalar values may be used only in the WHERE clause, never in the SELECT.
+
 #### Literals
 
-Single quotes are used to demarcate string literals. Boolean literals are `TRUE` and `FALSE`. Nubers can be expressed similar like in the java syntax.
+Single quotes are used to demarcate string literals. Boolean literals are `TRUE` and `FALSE`. Nubers can be expressed similar to the regular java syntax.
 
 Queries also can reference `Enum` types. `... WHERE e.type = com.example.EmployeeType.FULLTIME`
 
@@ -208,18 +214,67 @@ Temporal literals use the JDBC escape syntax. `d` is for date, `t` is for time, 
 
 `{d '2009-11-05}`
 `{t '12-45-52'}`
+
 `{ts '2009-11-05 12-45-52.325'}` . The millisecond part is optional.
 
 #### Function expressions - p.230
 
+ABS(num)
+LENGTH(string)
+LOCATE(string1, string2, [start])
+LOWER(string)
+SIZE(collection)
+SUBSTRING(string, start, end)
+
+and many more
+
 #### CASE expressions
 
-Conditional logic for queries. There are 4 forms of the CASE expressions.
+Conditional logic for queries. Case expressions are often used to transform data in report queries.
 
-The most general (all other forms can be expressed as a general case expression)
+There are 4 forms of the CASE expressions.
+
+1. The most general (all other forms can be expressed as a general case expression)
 `CASE {WHEN <condition> THEN <scalar> }+ ELSE <scalar> END`
 
-Case expressions ar eoften used to transform data in report queries- p.232
+The condition variable is defined in each WHEN clause:
+
+`SELECT p.name, CASE WHEN TYPE(p) = DesignProject THEN 'Development'...`
+
+2. the second type, in general form:
+`CASE <value> {WHEN <scalar_expr1> THEN <scalar_expr2>}+ ELSE <scalar_expr> END`
+
+the condition variable is defined for all WHEN clauses:
+`SELECT p.name, CASE TYPE(p) WHEN DesignProject THEN 'Development'...`
+
+3. COALESCE
+`COALESCE(<scalar_expr> {,<scalar_expr>}+)`
+
+The first expression to return a non-null value becomes the result of the expression.
+
+Here we actually want a name, but if the name is not defined, we use the id as fallback.
+`SELECT COALESCE(d.name, d.id) FROM Department d`
+
+4. NULLIF
+
+`NULLIF(<scalar_expr1>, <scalar_expr2>)`
+
+It accepts two scalar expressions and resolves both. If the results are equal, the result of the expression is null. Otherwise it is the result of the first expression.
+
+NULLIF can be used to exclude results (see p.233)
+
+#### ORDER BY (p.233)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
