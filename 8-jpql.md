@@ -265,22 +265,71 @@ NULLIF can be used to exclude results (see p.233)
 
 #### ORDER BY (p.233)
 
+Default sort order is ASC
+
+Sorting by a single field:
+`SELECT e FROM Employee e ORDER BY e.name DESC`
+
+Sorting by multiple fields:
+`SELECT e FROM Employee e ORDER BY e.salary DESC, e.name DESC`
+
+Note the DESC keyword, on e.salary. If we had separated the ORDER BY arguments by a comma, ASC order would be used per default.
+
+Using aliases for better performance (the variables have to be resolved only once)
+`SELECT e.name, e.salary * 0.05 AS bonus FROM Employee e JOIN e.department d ORDER BY bonus DESC`
+
+Sorting by attributes that are not accessible from the SELECT clause is supposed to be illegal, but it does work for some reason - TODO - clarify on SO
+
+`SELECT e.name FROM Employee e ORDER BY e.salary DESC`
+
+#### Aggregate queries
+
+Aggregate queries are the ones containing either an aggregate function or a GROUP BY clause and/or a HAVING clause
+
+```sql
+    SELECT <select_expression> 
+    FROM <from_clause>
+    [WHERE <conditional_expression>]
+    [GROUP BY <group_by_clause>]
+    [HAVING <conditional_expression>]
+    [ORDER BY <order_by_clause>]
+```
+
+There are 5 aggregate functions: 
+
+**AVG, MIN, MAX, COUNT, SUM**
+
+All employees are in the single group that defines the range of the aggregate query:
+
+`SELECT AVG(e.salary) FROM Employee e`
+
+`SELECT d.name, AVG(e.salary) FROM Department d, Employee e GROUP BY d.name`
+
+A complex query is executed in multiple steps:
+
+```sql
+SELECT d.name, AVG(e.salary)
+FROM Department d JOIN d.employees e
+WHERE e.directs IS EMPTY
+GROUP BY d.name
+HAVING AVG(e.salary) > 50000
+```
+
+is executed like this: first the "vanilla" select part is executed:
+
+```sql
+SELECT d.name, AVG(e.salary)
+FROM Department d JOIN d.employees e
+WHERE e.directs IS EMPTY
+```
+
+then the results are iterated over and the grouping occurs, which passes the data to the AVG function. The result of the AVG is then passed to the HAVING clause.
 
 
+#### GROUP BY clause p.236
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+#### HAVING clause p.236
 
 
 
