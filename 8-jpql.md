@@ -328,10 +328,26 @@ then the results are iterated over and the grouping occurs, which passes the dat
 
 #### GROUP BY clause p.236
 
+Determines the aggregetion/breaking down of results.
+
+//TODO - The book says, you cannot group by what is not included in the select clause, but it works. clarify on SO
+
+<Because there are two grouping expressions, the department name and employee salary must be listed in both the SELECT clause and GROUP BY clause>
 
 #### HAVING clause p.236
 
+Defines a filter to be applied to the grouped results - effectively a secondary WHERE clause. Contrary to the original WHERE clause, the argumants are limited by singlevalused associations listed in the GROUP BY clause....it seems Im misunderstanding this restriction - the query below works just fine (adn is atually listen in the book) but p is not listed in the GROUP BY clause:
 
+```sql
+SELECT e, COUNT(p)
+FROM Employee e JOIN e.projects p
+GROUP BY e
+HAVING COUNT(p) >= 2
+```
+#### Update & Delete queries - nothing special p.237-238 
+
+Delete queries are polymorphic - when deleting a base class, the entites of derived classe are also affected.
+Delete queries do not honor cascading - they only delete their target entity, but no associations. 
 
 
 
