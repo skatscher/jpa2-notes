@@ -3,14 +3,14 @@ Ch 3 - enterprise applications
 
 do not use static variables with session beans - stateful or stateless (or singleton) - they cause problems at redeployment. Is it forbidden or just discouraged? -> TODO?
 
-**Stateful** beans have a **@Remove** annotation to signify the method  for detachign teh bean from the user session and returning to the pool - I have never seen it yet. And not sure if this is a good idea with DI - once you have removed the bean - what do your client beans have instead of the injected instance? (the book states theat at least one Remove-annotated method is necessary - have to check on that)
+**Stateful** beans have a **@Remove** annotation to signify the method  for detaching the bean from the user session and returning to the pool - I have never seen it yet. And not sure if this is a good idea with DI - once you have removed the bean - what do your client beans have instead of the injected instance? (the book states theat at least one Remove-annotated method is necessary - have to check on that)
 
-**Stateful** beans have two more lifecycle callbacks - **PrePassivate and PostActivate**. These are used for  serialization - either for purposes of passivationn or for sending the bean instance to other server instances in a cluster. If the bean manages resources explicitly, the PrePassivate is analogous to PreDestroy and PostActivate is analogous to PostConstruct - used for resource allocation and release.
+**Stateful** beans have two more lifecycle callbacks - **PrePassivate and PostActivate**. These are used for  serialization - either for purposes of passivation or for sending the bean instance to other server instances in a cluster. If the bean manages resources explicitly, the PrePassivate is analogous to PreDestroy and PostActivate is analogous to PostConstruct - used for resource allocation and release.
 
 **Singleton** beans - introduced with EJB 3.1
 -- is a singleton unique across a server cluster?
-If the @Startup annottation is not used, the bean is instantiated when the server sees it fit. In case multiple Sngleton depend on each other, the @DependsOn annotation should be used. The @PreDestroy method is called only once - when the appplication is ended. 
-As Singleton beans are accessed concurrently. Per default, the methods of the bean are managed with Write-lcoks, but can be managed with read.level locks, or programmatically - bean-level - p.44
+If the @Startup annottation is not used, the bean is instantiated when the server sees it fit. In case multiple Singleton depend on each other, the @DependsOn annotation should be used. The @PreDestroy method is called only once - when the application is ended. 
+As Singleton beans are accessed concurrently. Per default, the methods of the bean are managed with Write-locks, but can be managed with read.level locks, or programmatically - bean-level - p.44
 
 MDB - p.45. For JMS.based MDBs, the business interface is javax.jms.MessageListener with the single void onMessage method. See @ActivationConfigProperty
 
